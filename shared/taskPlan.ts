@@ -54,8 +54,8 @@ const toDifficulty = (value: unknown): PlanDifficulty => {
   const normalized = String(value ?? '')
     .trim()
     .toLowerCase();
-  if (normalized === 'lahko' || normalized === 'easy') return 'Easy';
-  if (normalized === 'srednje' || normalized === 'medium') return 'Medium';
+  if (normalized === 'easy') return 'Easy';
+  if (normalized === 'medium') return 'Medium';
   return 'Hard';
 };
 

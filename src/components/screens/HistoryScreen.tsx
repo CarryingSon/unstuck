@@ -28,7 +28,7 @@ const formatDateTime = (value: string) => {
 };
 
 const formatDeadline = (deadline: string, time?: string) => {
-  if (!deadline) return 'Rok ni nastavljen';
+  if (!deadline) return 'No deadline set';
 
   const [year, month, day] = deadline.split('-').map(Number);
   if (!year || !month || !day) return deadline;
@@ -59,9 +59,9 @@ export function HistoryScreen({
             <Sparkles className="w-4 h-4" />
             Task history
           </div>
-          <h2 className="text-4xl font-display font-bold text-ink">Prejsnji taski</h2>
+          <h2 className="text-4xl font-display font-bold text-ink">Previous tasks</h2>
           <p className="text-ink/55 font-medium mt-2">
-            Tu so shranjene vse AI razclenitve, ki si jih naredil.
+            All your saved AI breakdowns are stored here.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -84,16 +84,16 @@ export function HistoryScreen({
 
       {items.length === 0 ? (
         <div className="bg-white rounded-[2.5rem] border border-primary/10 p-10 text-center soft-shadow">
-          <h3 className="text-2xl font-display font-bold text-ink mb-3">History je trenutno prazen</h3>
+          <h3 className="text-2xl font-display font-bold text-ink mb-3">History is currently empty</h3>
           <p className="text-ink/55 font-medium mb-8">
-            Ko AI pripravi plan, se bo tukaj samodejno shranil.
+            When AI creates a plan, it will be saved here automatically.
           </p>
           <button
             onClick={onCreateNew}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-5 h-5" />
-            Ustvari prvi task
+            Create your first task
           </button>
         </div>
       ) : (
@@ -133,9 +133,9 @@ export function HistoryScreen({
               <p className="text-ink/55 text-sm leading-relaxed mb-5">{item.plan.summary}</p>
 
               <div className="flex items-center gap-2 text-xs font-semibold text-ink/55 mb-6">
-                <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full">{item.plan.steps.length} korakov</span>
+                <span className="bg-primary/10 text-primary px-2.5 py-1 rounded-full">{item.plan.steps.length} steps</span>
                 <span className="w-1 h-1 rounded-full bg-ink/20" />
-                <span>Rok: {formatDeadline(item.answers.deadline, item.answers.time)}</span>
+                <span>Due: {formatDeadline(item.answers.deadline, item.answers.time)}</span>
                 <span className="w-1 h-1 rounded-full bg-ink/20" />
                 <span>{item.answers.materials}</span>
               </div>
@@ -144,7 +144,7 @@ export function HistoryScreen({
                 onClick={() => onOpenTask(item.id)}
                 className="mt-auto w-full py-3.5 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors"
               >
-                Odpri v canvasu
+                Open in canvas
               </button>
             </motion.div>
           ))}

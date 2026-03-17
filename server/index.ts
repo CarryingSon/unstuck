@@ -36,8 +36,8 @@ const parseModelJson = (rawText: string) => {
 };
 
 const formatDeadline = (date: string, time: string) => {
-  if (!date) return 'Ni podan.';
-  return time ? `${date} ob ${time}` : date;
+  if (!date) return 'Not provided.';
+  return time ? `${date} at ${time}` : date;
 };
 
 app.get('/api/health', (_req, res) => {
@@ -49,16 +49,16 @@ app.post('/api/task-plan', async (req, res) => {
   const taskText = String(body?.taskText ?? '').trim();
   const deadline = String(body?.answers?.deadline ?? '').trim();
   const time = String(body?.answers?.time ?? '').trim();
-  const materials = String(body?.answers?.materials ?? '').trim() || 'Ni navedeno';
+  const materials = String(body?.answers?.materials ?? '').trim() || 'Not specified';
 
   if (!taskText) {
-    return res.status(400).json({ error: 'Manjka opis naloge.' });
+    return res.status(400).json({ error: 'Task description is missing.' });
   }
 
   if (!process.env.OPENAI_API_KEY) {
     return res
       .status(500)
-      .json({ error: 'Manjka OPENAI_API_KEY v okolju. Dodaj ga v .env.local.' });
+      .json({ error: 'OPENAI_API_KEY is missing in the environment. Add it to .env.local.' });
   }
 
   try {
@@ -68,16 +68,16 @@ app.post('/api/task-plan', async (req, res) => {
     const response = await client.responses.create({
       model,
       instructions:
-        'Ti si odlicen AI mentor za razclenjevanje nalog. Pomagaj uporabniku dobiti jasen, izvedljiv plan.',
+        'You are an excellent AI mentor for breaking down tasks. Help the user get a clear, actionable plan.',
       input: [
-        'Pripravi strukturiran plan v slovenskem jeziku.',
-        `Opis naloge: ${taskText}`,
-        `Rok: ${formatDeadline(deadline, time)}`,
-        `Stanje gradiva: ${materials}`,
-        'Vrni 3 do 8 korakov.',
-        'Koraki naj bodo v logicnem zaporedju, z realisticno casovno oceno po korakih.',
-        'Poskusi predvideti tudi cas za pregled/oddajo na koncu.',
-        'Odgovori samo z JSON objektom, brez markdown ograje.',
+        'Prepare a structured plan in English.',
+        `Task description: ${taskText}`,
+        `Due date: ${formatDeadline(deadline, time)}`,
+        `Available materials: ${materials}`,
+        'Return 3 to 8 steps.',
+        'Steps should be in logical order, with realistic time estimates per step.',
+        'Include time for final review/submission at the end.',
+        'Respond with JSON only, without markdown fences.',
       ].join('\n'),
       max_output_tokens: 1200,
       text: {
@@ -96,7 +96,7 @@ app.post('/api/task-plan', async (req, res) => {
 
     if (!plan) {
       return res.status(502).json({
-        error: 'Model je vrnil neveljaven plan. Poskusi znova.',
+        error: 'The model returned an invalid plan. Please try again.',
         raw: response.output_text,
       });
     }
@@ -105,12 +105,12 @@ app.post('/api/task-plan', async (req, res) => {
   } catch (error) {
     if (error instanceof OpenAI.APIError) {
       return res.status(error.status || 500).json({
-        error: error.message || 'OpenAI API napaka.',
+        error: error.message || 'OpenAI API error.',
       });
     }
 
     return res.status(500).json({
-      error: 'Neznana napaka pri generiranju plana.',
+      error: 'Unknown error while generating the plan.',
     });
   }
 });

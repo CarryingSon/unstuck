@@ -21,16 +21,16 @@ export function PlanningScreen({
       <div className="bg-white rounded-[3rem] border border-primary/10 soft-shadow p-10 md:p-14">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/15 text-accent rounded-full text-xs font-bold uppercase tracking-widest mb-6">
           <Sparkles className="w-4 h-4" />
-          AI analiza
+          AI analysis
         </div>
 
         <h2 className="text-4xl font-display font-bold text-ink mb-3">
-          {isRunning ? 'Pripravljam razclenitev naloge...' : error ? 'Analiza ni uspela' : 'Analiza je koncana'}
+          {isRunning ? 'Preparing your task breakdown...' : error ? 'Analysis failed' : 'Analysis complete'}
         </h2>
         <p className="text-ink/60 font-medium mb-10">
           {taskText
-            ? `Naloga: ${taskText.slice(0, 110)}${taskText.length > 110 ? '...' : ''}`
-            : 'Pripravljam plan za tvojo nalogo.'}
+            ? `Task: ${taskText.slice(0, 110)}${taskText.length > 110 ? '...' : ''}`
+            : 'Preparing a plan for your task.'}
         </p>
 
         <div className="w-full h-4 bg-primary/10 rounded-full overflow-hidden p-1 mb-4">
@@ -42,14 +42,14 @@ export function PlanningScreen({
         </div>
 
         <div className="flex items-center justify-between text-sm font-bold text-ink/50 mb-8">
-          <span>{isRunning ? 'AI pripravlja korake in casovne ocene' : 'Zakljucek analize'}</span>
+          <span>{isRunning ? 'AI is preparing steps and time estimates' : 'Analysis summary'}</span>
           <span>{safeProgress}%</span>
         </div>
 
         {isRunning ? (
           <div className="inline-flex items-center gap-2 text-primary font-semibold">
             <Loader2 className="w-4 h-4 animate-spin" />
-            To lahko traja nekaj sekund.
+            This may take a few seconds.
           </div>
         ) : error ? (
           <div className="space-y-5">
@@ -61,7 +61,7 @@ export function PlanningScreen({
               onClick={onRetry}
               className="px-6 py-3 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 transition-colors"
             >
-              Poskusi znova
+              Try again
             </button>
           </div>
         ) : null}

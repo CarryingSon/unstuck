@@ -34,12 +34,12 @@ export const requestTaskPlan = async ({
   const body = payload as { plan?: unknown; error?: string } | null;
 
   if (!response.ok) {
-    throw new Error(body?.error || 'AI analiza trenutno ni uspela.');
+    throw new Error(body?.error || 'AI analysis failed. Please try again.');
   }
 
   const plan = normalizeTaskPlan(body?.plan);
   if (!plan) {
-    throw new Error('AI odgovor ni bil v pricakovani obliki.');
+    throw new Error('AI response was not in the expected format.');
   }
 
   return plan;

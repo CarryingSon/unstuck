@@ -6,6 +6,7 @@ interface SidebarProps {
   setScreen: (screen: string) => void;
   navigationLocked?: boolean;
   onNewTask?: () => void;
+  onVisualMapClick?: () => void;
 }
 
 export function Sidebar({
@@ -13,6 +14,7 @@ export function Sidebar({
   setScreen,
   navigationLocked = false,
   onNewTask,
+  onVisualMapClick,
 }: SidebarProps) {
   const navItems = [
     { id: 'home', icon: Home, label: 'Home' },
@@ -32,7 +34,13 @@ export function Sidebar({
               key={item.id}
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => setScreen(item.id)}
+              onClick={() => {
+                if (item.id === 'dashboard') {
+                  onVisualMapClick?.();
+                  return;
+                }
+                setScreen(item.id);
+              }}
               disabled={navigationLocked}
               className={`relative p-4 rounded-[1.8rem] transition-all flex flex-col items-center gap-1 w-16 ${
                 isActive

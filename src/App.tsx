@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { HomeScreen } from './components/screens/HomeScreen';
@@ -8,12 +8,18 @@ import { StartModeScreen } from './components/screens/StartModeScreen';
 import { ProgressScreen } from './components/screens/ProgressScreen';
 import { PlanningScreen } from './components/screens/PlanningScreen';
 import { HistoryScreen } from './components/screens/HistoryScreen';
+import { VisualMapPicker } from './components/VisualMapPicker';
+import { ProfileHub } from './components/profile/ProfileHub';
+import { RewardToasts } from './components/RewardToasts';
 import { requestTaskPlan } from './lib/taskPlanner';
 import type { TaskPlan } from '../shared/taskPlan.ts';
+import { getTodayKey, useGamification } from './state/gamification.tsx';
+import { useTheme } from './state/theme.tsx';
 
 const APP_STORAGE_KEY = 'unstuck.app.v1';
 const TASK_HISTORY_STORAGE_KEY = 'unstuck.task-history.v1';
-const DASHBOARD_STORAGE_KEY = 'unstuck.dashboard.v2';
+const DASHBOARD_DRAFT_STORAGE_KEY = 'unstuck.dashboard.v3.draft';
+const MIN_ANALYSIS_DURATION_MS = 5500;
 const SCREENS = ['home', 'questions', 'planning', 'dashboard', 'history', 'start', 'progress'] as const;
 type ScreenId = (typeof SCREENS)[number];
 
@@ -138,6 +144,8 @@ const applyHashScreen = (screen: ScreenId, replace = false) => {
 };
 
 export default function App() {
+  const { state: gamificationState, recordEvent, syncSelectedTheme } = useGamification();
+  const { themeId } = useTheme();
   const persisted = useMemo(() => readPersistedState(), []);
   const initialScreen = useMemo(() => {
     const fromState = getScreenFromHash() ?? persisted?.currentScreen ?? 'home';
@@ -151,13 +159,42 @@ export default function App() {
   const [planningState, setPlanningState] = useState<PlanningState>(defaultPlanningState);
   const [plannedTask, setPlannedTask] = useState<TaskPlan | null>(null);
   const [taskHistory, setTaskHistory] = useState<TaskHistoryItem[]>(() => readTaskHistory());
+  const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  const [isProfileHubOpen, setIsProfileHubOpen] = useState(false);
+  const [pendingCompletions, setPendingCompletions] = useState(0);
   const isNavigationLocked = planningState.isRunning;
+  const navigationLockRef = useRef(isNavigationLocked);
+  const analysisRunRef = useRef(0);
+
+  useEffect(() => {
+    navigationLockRef.current = isNavigationLocked;
+  }, [isNavigationLocked]);
+
+  useEffect(() => {
+    syncSelectedTheme(themeId);
+  }, [syncSelectedTheme, themeId]);
+
+  useEffect(() => {
+    const today = getTodayKey();
+    recordEvent('daily_return', {
+      idempotencyKey: `daily_return:${today}`,
+    });
+  }, [recordEvent]);
+
+  useEffect(() => {
+    if (currentScreen !== 'progress') return;
+    const today = getTodayKey();
+    recordEvent('progress_reviewed', {
+      idempotencyKey: `progress_reviewed:${today}`,
+    });
+  }, [currentScreen, recordEvent]);
 
   const navigateToScreen = useCallback(
     (screen: string, options?: { replace?: boolean; force?: boolean }) => {
       if (!isValidScreen(screen)) return;
 
-      if (isNavigationLocked && screen !== 'planning' && !options?.force) {
+      if (navigationLockRef.current && screen !== 'planning' && !options?.force) {
         setCurrentScreen('planning');
         applyHashScreen('planning', true);
         return;
@@ -166,7 +203,7 @@ export default function App() {
       setCurrentScreen(screen);
       applyHashScreen(screen, options?.replace);
     },
-    [isNavigationLocked]
+    []
   );
 
   const goToQuestions = () => {
@@ -179,20 +216,24 @@ export default function App() {
   };
 
   const createNewTask = useCallback(() => {
-    if (isNavigationLocked) return;
+    if (navigationLockRef.current) return;
 
     setTaskText('');
     setTaskError('');
     setAnswers({ ...defaultAnswers });
     setPlanningState({ ...defaultPlanningState });
     setPlannedTask(null);
+    setCurrentHistoryId(null);
+    setIsMapPickerOpen(false);
+    setIsProfileHubOpen(false);
+    setPendingCompletions(0);
 
     if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(DASHBOARD_STORAGE_KEY);
+      window.localStorage.removeItem(DASHBOARD_DRAFT_STORAGE_KEY);
     }
 
     navigateToScreen('home', { force: true });
-  }, [isNavigationLocked, navigateToScreen]);
+  }, [navigateToScreen]);
 
   const startAiAnalysis = useCallback(async () => {
     if (!taskText.trim()) {
@@ -201,30 +242,48 @@ export default function App() {
       return;
     }
 
+    const runId = analysisRunRef.current + 1;
+    analysisRunRef.current = runId;
+    const startedAt = Date.now();
+
+    navigationLockRef.current = true;
     setPlannedTask(null);
     setPlanningState({
       isRunning: true,
-      progress: 8,
+      progress: 3,
       error: '',
     });
-    navigateToScreen('planning');
+    navigateToScreen('planning', { force: true });
 
     const progressTimer =
       typeof window === 'undefined'
         ? null
         : window.setInterval(() => {
             setPlanningState((current) => {
-              if (!current.isRunning) return current;
-              const next = Math.min(92, current.progress + Math.floor(Math.random() * 7) + 2);
+              if (!current.isRunning || analysisRunRef.current !== runId) return current;
+              const step =
+                current.progress < 40
+                  ? Math.floor(Math.random() * 3) + 1
+                  : current.progress < 70
+                    ? Math.floor(Math.random() * 2) + 1
+                    : 1;
+              const next = Math.min(88, current.progress + step);
               return { ...current, progress: next };
             });
-          }, 260);
+          }, 620);
 
     try {
       const plan = await requestTaskPlan({
         taskText,
         answers,
       });
+      if (analysisRunRef.current !== runId) return;
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_ANALYSIS_DURATION_MS) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_ANALYSIS_DURATION_MS - elapsed));
+      }
+      if (analysisRunRef.current !== runId) return;
 
       setPlannedTask(plan);
       setPlanningState({
@@ -239,13 +298,28 @@ export default function App() {
         answers: { ...answers },
         plan,
       };
+      setCurrentHistoryId(historyItem.id);
       setTaskHistory((previous) => [historyItem, ...previous].slice(0, 50));
-      navigateToScreen('dashboard', { force: true });
+      setIsMapPickerOpen(false);
+      setIsProfileHubOpen(false);
+      navigationLockRef.current = false;
+      setTimeout(() => {
+        if (analysisRunRef.current !== runId) return;
+        navigateToScreen('dashboard', { force: true });
+      }, 280);
     } catch (error) {
+      if (analysisRunRef.current !== runId) return;
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 2200) {
+        await new Promise((resolve) => setTimeout(resolve, 2200 - elapsed));
+      }
+
+      navigationLockRef.current = false;
       setPlanningState({
         isRunning: false,
         progress: 100,
-        error: error instanceof Error ? error.message : 'AI analiza trenutno ni uspela.',
+        error: error instanceof Error ? error.message : 'AI analysis failed. Please try again.',
       });
     } finally {
       if (progressTimer !== null) {
@@ -260,7 +334,7 @@ export default function App() {
       const hashScreen = getScreenFromHash();
       if (!hashScreen) return;
 
-      if (isNavigationLocked && hashScreen !== 'planning') {
+      if (navigationLockRef.current && hashScreen !== 'planning') {
         setCurrentScreen('planning');
         applyHashScreen('planning', true);
         return;
@@ -271,7 +345,20 @@ export default function App() {
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [isNavigationLocked]);
+  }, []);
+
+  useEffect(() => {
+    if (currentScreen !== 'planning') return;
+    if (planningState.isRunning) return;
+    if (planningState.error) return;
+    if (!plannedTask) return;
+
+    const timer = window.setTimeout(() => {
+      navigateToScreen('dashboard', { force: true });
+    }, 320);
+
+    return () => window.clearTimeout(timer);
+  }, [currentScreen, navigateToScreen, plannedTask, planningState.error, planningState.isRunning]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -306,29 +393,49 @@ export default function App() {
       setAnswers({ ...selected.answers });
       setPlanningState({ ...defaultPlanningState });
       setPlannedTask(selected.plan);
+      setCurrentHistoryId(selected.id);
+      setIsMapPickerOpen(false);
+      setIsProfileHubOpen(false);
       navigateToScreen('dashboard', { force: true });
     },
     [navigateToScreen, taskHistory]
   );
 
+  const openVisualMapPicker = useCallback(() => {
+    if (navigationLockRef.current) return;
+
+    if (!taskHistory.length) {
+      if (plannedTask) {
+        navigateToScreen('dashboard', { force: true });
+      } else {
+        navigateToScreen('home', { force: true });
+      }
+      return;
+    }
+
+    setIsMapPickerOpen(true);
+  }, [navigateToScreen, plannedTask, taskHistory.length]);
+
   const deleteTaskFromHistory = useCallback((historyId: string) => {
     if (typeof window !== 'undefined') {
-      const accepted = window.confirm('Ali zelis izbrisati ta task iz history?');
+      const accepted = window.confirm('Do you want to delete this task from history?');
       if (!accepted) return;
     }
 
     setTaskHistory((previous) => previous.filter((item) => item.id !== historyId));
+    setCurrentHistoryId((previous) => (previous === historyId ? null : previous));
   }, []);
 
   const clearHistory = useCallback(() => {
     if (!taskHistory.length) return;
 
     if (typeof window !== 'undefined') {
-      const accepted = window.confirm('Ali zelis pobrisati celoten history?');
+      const accepted = window.confirm('Do you want to clear the entire history?');
       if (!accepted) return;
     }
 
     setTaskHistory([]);
+    setCurrentHistoryId(null);
   }, [taskHistory.length]);
 
   const renderScreen = () => {
@@ -364,17 +471,34 @@ export default function App() {
             }}
           />
         );
-      case 'dashboard':
+      case 'dashboard': {
+        const activeTaskId = currentHistoryId ?? 'draft';
         return (
           <DashboardScreen
+            activeTaskId={activeTaskId}
             taskText={taskText}
             answers={answers}
             plannedTask={plannedTask}
             planningError={planningState.error}
             onNewTask={createNewTask}
+            pendingCompletions={pendingCompletions}
+            onConsumeCompletion={() => {
+              setPendingCompletions((current) => Math.max(0, current - 1));
+            }}
+            onStepCompleted={(stepId) => {
+              recordEvent('step_completed', {
+                idempotencyKey: `${activeTaskId}:step:${stepId}`,
+              });
+            }}
+            onTaskPathCompleted={() => {
+              recordEvent('task_path_completed', {
+                idempotencyKey: `${activeTaskId}:completed`,
+              });
+            }}
             onStart={() => navigateToScreen('start')}
           />
         );
+      }
       case 'history':
         return (
           <HistoryScreen
@@ -386,7 +510,18 @@ export default function App() {
           />
         );
       case 'start':
-        return <StartModeScreen onBack={() => navigateToScreen('dashboard')} onComplete={() => navigateToScreen('progress')} />;
+        return (
+          <StartModeScreen
+            onBack={() => navigateToScreen('dashboard')}
+            onComplete={({ minutesSpent }) => {
+              recordEvent('focus_session_completed', {
+                minutes: Math.max(1, minutesSpent),
+              });
+              setPendingCompletions((current) => current + 1);
+              navigateToScreen('dashboard');
+            }}
+          />
+        );
       case 'progress':
         return <ProgressScreen onNext={() => navigateToScreen('dashboard')} />;
       default:
@@ -408,6 +543,17 @@ export default function App() {
         setScreen={navigateToScreen}
         navigationLocked={isNavigationLocked}
         onNewTask={createNewTask}
+        onVisualMapClick={openVisualMapPicker}
+        onProfileClick={() => setIsProfileHubOpen(true)}
+        coins={gamificationState.coins}
+        level={gamificationState.level}
+        xpIntoLevel={gamificationState.xpIntoLevel}
+        xpToNextLevel={gamificationState.xpToNextLevel}
+        streakDays={gamificationState.streakDays}
+        username={gamificationState.username}
+        selectedBaseAvatarId={gamificationState.selectedBaseAvatarId}
+        selectedRpmAvatarUrl={gamificationState.selectedRpmAvatarUrl}
+        equippedBySlot={gamificationState.equippedBySlot}
       />
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
@@ -415,9 +561,27 @@ export default function App() {
           setScreen={navigateToScreen}
           navigationLocked={isNavigationLocked}
           onNewTask={createNewTask}
+          onVisualMapClick={openVisualMapPicker}
         />
         <main className="flex-1 overflow-y-auto">{renderScreen()}</main>
       </div>
+      <VisualMapPicker
+        isOpen={isMapPickerOpen}
+        items={taskHistory}
+        currentId={currentHistoryId}
+        onClose={() => setIsMapPickerOpen(false)}
+        onSelectMap={openTaskFromHistory}
+        onOpenHistory={() => {
+          setIsMapPickerOpen(false);
+          navigateToScreen('history', { force: true });
+        }}
+        onCreateNew={createNewTask}
+      />
+      <ProfileHub
+        isOpen={isProfileHubOpen}
+        onClose={() => setIsProfileHubOpen(false)}
+      />
+      <RewardToasts />
     </div>
   );
 }

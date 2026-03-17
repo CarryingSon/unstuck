@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { Play, Pause, ChevronLeft, CheckCircle2, Zap, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
-export function StartModeScreen({ onBack, onComplete }: { onBack: () => void, onComplete: () => void }) {
+export function StartModeScreen({
+  onBack,
+  onComplete,
+}: {
+  onBack: () => void;
+  onComplete: (payload: { minutesSpent: number }) => void;
+}) {
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes
   const [focusTask, setFocusTask] = useState('Create a simple outline');
@@ -43,6 +49,11 @@ export function StartModeScreen({ onBack, onComplete }: { onBack: () => void, on
   };
 
   const progress = ((15 * 60 - timeLeft) / (15 * 60)) * 100;
+  const handleComplete = () => {
+    const elapsedSeconds = Math.max(60, 15 * 60 - timeLeft);
+    const minutesSpent = Math.max(1, Math.round(elapsedSeconds / 60));
+    onComplete({ minutesSpent });
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-8 flex flex-col h-full relative">
@@ -138,7 +149,7 @@ export function StartModeScreen({ onBack, onComplete }: { onBack: () => void, on
             <motion.button 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={onComplete}
+              onClick={handleComplete}
               className="flex-1 py-4 bg-secondary text-white rounded-2xl font-bold hover:bg-primary transition-all shadow-lg shadow-secondary/40 flex items-center justify-center gap-2"
             >
               <CheckCircle2 className="w-5 h-5" /> Done!

@@ -4,7 +4,7 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", sans-serif;
-  
+
   --color-primary: #8B5CF6;
   --color-secondary: #B499FF;
   --color-accent: #6D28D9;
@@ -16,13 +16,122 @@
   --color-muted: #7A7396;
 }
 
+:root {
+  --bg-blob-1: rgba(180, 153, 255, 0.18);
+  --bg-blob-2: rgba(139, 92, 246, 0.16);
+}
+
+body[data-theme='default-purple'] {
+  --color-primary: #8B5CF6;
+  --color-secondary: #B499FF;
+  --color-accent: #6D28D9;
+  --color-bg: #F4F0FF;
+  --color-ink: #231C3B;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #FBF9FF;
+  --color-outline: #E6DBFF;
+  --color-muted: #7A7396;
+  --bg-blob-1: rgba(180, 153, 255, 0.18);
+  --bg-blob-2: rgba(139, 92, 246, 0.16);
+}
+
+body[data-theme='dark'] {
+  --color-primary: #38BDF8;
+  --color-secondary: #64748B;
+  --color-accent: #0EA5E9;
+  --color-bg: #0F172A;
+  --color-ink: #E2E8F0;
+  --color-surface: #111827;
+  --color-surface-soft: #1E293B;
+  --color-outline: #334155;
+  --color-muted: #94A3B8;
+  --bg-blob-1: rgba(56, 189, 248, 0.18);
+  --bg-blob-2: rgba(15, 23, 42, 0.24);
+}
+
+body[data-theme='minimalist'] {
+  --color-primary: #475569;
+  --color-secondary: #94A3B8;
+  --color-accent: #334155;
+  --color-bg: #F5F5F4;
+  --color-ink: #292524;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #FAFAF9;
+  --color-outline: #E7E5E4;
+  --color-muted: #78716C;
+  --bg-blob-1: rgba(148, 163, 184, 0.16);
+  --bg-blob-2: rgba(120, 113, 108, 0.12);
+}
+
+body[data-theme='colorful'] {
+  --color-primary: #EC4899;
+  --color-secondary: #6366F1;
+  --color-accent: #F97316;
+  --color-bg: #FFF7ED;
+  --color-ink: #3B0764;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #FFF1F2;
+  --color-outline: #FBCFE8;
+  --color-muted: #9D174D;
+  --bg-blob-1: rgba(249, 115, 22, 0.2);
+  --bg-blob-2: rgba(99, 102, 241, 0.18);
+}
+
+body[data-theme='soft-pastel'] {
+  --color-primary: #EC4899;
+  --color-secondary: #22C55E;
+  --color-accent: #A855F7;
+  --color-bg: #FFF7F9;
+  --color-ink: #334155;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #FFFBEB;
+  --color-outline: #F5D0FE;
+  --color-muted: #64748B;
+  --bg-blob-1: rgba(236, 72, 153, 0.16);
+  --bg-blob-2: rgba(34, 197, 94, 0.14);
+}
+
+body[data-theme='focus'] {
+  --color-primary: #0891B2;
+  --color-secondary: #0E7490;
+  --color-accent: #155E75;
+  --color-bg: #E6F4F1;
+  --color-ink: #0F172A;
+  --color-surface: #F8FAFC;
+  --color-surface-soft: #F0FDFA;
+  --color-outline: #A5F3FC;
+  --color-muted: #334155;
+  --bg-blob-1: rgba(8, 145, 178, 0.14);
+  --bg-blob-2: rgba(14, 116, 144, 0.12);
+}
+
 body {
   background:
-    radial-gradient(1200px 480px at 10% -10%, rgba(180, 153, 255, 0.18), transparent 60%),
-    radial-gradient(1000px 420px at 90% -20%, rgba(139, 92, 246, 0.16), transparent 60%),
+    radial-gradient(1200px 480px at 10% -10%, var(--bg-blob-1), transparent 60%),
+    radial-gradient(1000px 420px at 90% -20%, var(--bg-blob-2), transparent 60%),
     var(--color-bg);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
+}
+
+body,
+button,
+input,
+textarea,
+select,
+header,
+aside,
+main,
+section,
+article,
+nav,
+footer,
+div {
+  transition:
+    background-color 0.22s ease,
+    color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
@@ -34,13 +143,13 @@ body {
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.78);
+  background: color-mix(in oklab, var(--color-surface) 78%, transparent);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(139, 92, 246, 0.18);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 20%, white);
 }
 
 .soft-shadow {
-  box-shadow: 0 14px 34px -16px rgba(109, 40, 217, 0.35);
+  box-shadow: 0 14px 34px -16px color-mix(in oklab, var(--color-accent) 40%, transparent);
 }
 
 .react-flow__controls {
