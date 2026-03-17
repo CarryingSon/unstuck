@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  
+  --color-primary: #8B5CF6;
+  --color-secondary: #B499FF;
+  --color-accent: #6D28D9;
+  --color-bg: #F4F0FF;
+  --color-ink: #231C3B;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #FBF9FF;
+  --color-outline: #E6DBFF;
+  --color-muted: #7A7396;
+}
+
+body {
+  background:
+    radial-gradient(1200px 480px at 10% -10%, rgba(180, 153, 255, 0.18), transparent 60%),
+    radial-gradient(1000px 420px at 90% -20%, rgba(139, 92, 246, 0.16), transparent 60%),
+    var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+}
+
+.soft-shadow {
+  box-shadow: 0 14px 34px -16px rgba(109, 40, 217, 0.35);
+}
+
+.react-flow__controls {
+  border: 1px solid color-mix(in oklab, var(--color-primary) 18%, white);
+  border-radius: 1rem;
+}
+
+.react-flow__controls-button {
+  border-bottom-color: color-mix(in oklab, var(--color-primary) 14%, white) !important;
+  color: var(--color-accent);
+}
+
+.react-flow__controls-button:hover {
+  background-color: color-mix(in oklab, var(--color-primary) 10%, white);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.sparkle {
+  animation: sparkle 0.5s ease-out forwards;
+}
