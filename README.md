@@ -46,3 +46,16 @@ Open:
 - `npm run dev:api` -> Express API only
 - `npm run lint` -> TypeScript type-check
 - `npm run build` -> production frontend build
+
+## Deploy to Vercel
+
+This repo now includes Vercel serverless functions:
+- `api/task-plan.ts`
+- `api/health.ts`
+
+In Vercel Project Settings -> Environment Variables, set:
+- `OPENAI_API_KEY` (required)
+- `OPENAI_MODEL` (optional, default `gpt-5-mini`)
+
+After deploy, verify:
+- `https://<your-domain>/api/health` returns `{ "ok": true }`
