@@ -43,20 +43,33 @@ export const requestTaskPlan = async ({
     clearTimeout(timeoutId);
   }
 
+  const rawBody = await response.text();
   let payload: unknown = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
+  if (rawBody) {
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      payload = null;
+    }
   }
 
   const body = payload as { plan?: unknown; error?: string } | null;
 
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      rawBody.toLowerCase().includes('authentication required') &&
+      rawBody.toLowerCase().includes('vercel')
+    ) {
+      throw new Error(
+        'Vercel Deployment Protection blocks /api access (401). Use the public production domain or disable protection for this deployment.'
+      );
+    }
+
     if (!body?.error && response.status === 404) {
       throw new Error('API route /api/task-plan was not found in deployment.');
     }
-    throw new Error(body?.error || 'AI analysis failed. Please try again.');
+    throw new Error(body?.error || `AI analysis failed (HTTP ${response.status}).`);
   }
 
   const plan = normalizeTaskPlan(body?.plan);
